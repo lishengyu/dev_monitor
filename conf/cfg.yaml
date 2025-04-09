@@ -1,0 +1,36 @@
+# 基本配置项
+Base:
+  # 设备IP地址，不配置时，通过默认路由获取
+  DeviceIP: ""
+  # 主机名，不配置时，直接从设备获取
+  HostName: ""
+Log:
+  # 日志等级
+  LogLevel: debug
+  # 日志文件路径
+  LogFile: ./log/app.log
+  # 日志文件大小限制，单位MB
+  MaxSize: 100
+  # 日志文件保留天数  
+  MaxAge: 30
+  # 日志文件保留数量
+  MaxBackups: 100
+  # 日志文件压缩
+  Compress: false
+  # 日志文件时间
+  LocalTime: true
+
+# syslog服务器信息
+Syslog:
+  # syslog服务器地址和端口
+  Addr: "127.0.0.1:6514"
+  # syslog服务器类型，支持tcp和udp
+  Protocol: "tcp+tls"
+  # syslog服务器标签
+  Tag:  "syslog"
+  # 优先级，支持emerg, alert, crit, err, warning, notice, info, debug
+  Priority: 6
+  # 如果使用tcp协议，crt文件路径必须配置
+  ServerCrt: "./conf/server.crt"
+  # San名称
+  ServerName: "syslog.example.com"

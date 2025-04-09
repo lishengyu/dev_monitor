@@ -1,0 +1,80 @@
+# /etc/go-audit.yaml
+
+# 监控的event事件类型范围，参考链接
+# https://web.git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/uapi/linux/audit.h?h=linux-3.14.y
+events:
+  min: 1000
+  max: 1399
+
+# audit日志写文件，一次只能支持一种写文件方式
+output:
+  file:
+    enabled: false
+    attempts: 5
+    mode: 0666
+    user: root
+    group: root
+    path: /var/log/go-audit/audit.log
+    format: json
+
+  stdout:
+    enabled: true
+    attempts: 5
+
+# log an event when we believe a message has been lost
+message_tracking:
+  enabled: true
+  log_out_of_order: false
+  max_out_of_order: 500
+
+# 在内核层面决定哪些事件需要记录到审计日志中
+rules:
+  # 监控文件创建和重命名（新增）
+  - -a exit,always -F arch=b64 -S open,openat,creat,rename -F dir=/home/updpi/conf -F perm=wax -k file_events
+
+  # 监控文件修改（写入）
+  - -a exit,always -F arch=b64 -S write,truncate,ftruncate -F dir=/home/updpi/conf -k file_events
+
+  # 监控文件删除
+  - -a exit,always -F arch=b64 -S unlink,unlinkat,rmdir -F dir=/home/updpi/conf -k file_events
+  
+  # 监控用户登录（认证阶段）
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/sbin/sshd -k user_login
+  
+  # 监控用户登出（会话结束）
+  - -a exit,always -F arch=b64 -S close -F path=/var/run/utmp -k user_logout
+  
+  # 监控用户切换（如 su、sudo）
+  # - -a exit,always -F arch=b64 -S setuid,setgid -k user_switch
+
+  # 监控部分命令行
+  # 过滤指定路径的命令（如 /usr/bin/下的敏感工具）
+  # 匹配命令行参数（如包含 "ssh" 或 "sudo"等命令）
+  #- -a exit,always -F arch=b64 -S execve -F auid!=-1 -F exe=/usr/bin/* -k command_exec 
+  #- -a exit,always -F arch=b32 -S execve -F auid!=-1 -F exe=/usr/bin/* -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/rm -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/vim -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/vi -k command_exec 
+
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/rz -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/sz -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/ftp -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/curl -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/wget -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/scp -k command_exec 
+
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/su -k command_exec 
+  - -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/sudo -k command_exec 
+
+  # 监控关机/重启系统调用（reboot）
+  # 监控通过reboot命令触发的操作
+  # 仅监控root用户操作
+  # 过滤关机/重启操作类型（magic参数）
+  # 分别对应关机（LINUX_REBOOT_CMD_POWER_OFF）和重启（LINUX_REBOOT_CMD_RESTART）
+  #- -a exit,always -F arch=b64 -S reboot -F exe=/usr/sbin/reboot -F uid=0 -F a1=0x01234567,0x89ABCDEF -k command_reboot
+
+  # 监控systemd电源管理事件（如systemctl poweroff/reboot）
+  #- -a exit,always -F arch=b64 -S execve -F exe=/usr/bin/systemctl  -k systemd_reboot
+
+# 对捕捉到的事件进一步筛选
+filters: []
