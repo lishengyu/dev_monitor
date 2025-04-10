@@ -10,14 +10,16 @@ const (
 
 // 日志阶段
 const (
-	StepInit    = "初始化"
-	StepConf    = "加载配置文件"
-	StepInitLog = "初始化日志模块"
-	StepDevice  = "获取设备信息"
-	StepRawLog  = "原始日志"
-	StepParse   = "解析日志"
-	StepFormat  = "格式化日志"
-	StepSend    = "发送日志"
+	StepInit     = "初始化"
+	StepConf     = "加载配置文件"
+	StepInitLog  = "初始化日志模块"
+	StepDevice   = "获取设备信息"
+	StepLoadDump = "加载转储文件"
+	StepLocalLog = "本地日志"
+	StepRawLog   = "原始日志"
+	StepParse    = "解析日志"
+	StepFormat   = "格式化日志"
+	StepSend     = "发送日志"
 )
 
 // 日志动作
@@ -33,6 +35,7 @@ const (
 	Routine = "routine"
 	Marshal = "marshal"
 	Dynamic = "动态处理信息"
+	Esplase = "处理时长"
 )
 
 // channel统计信息
@@ -40,4 +43,9 @@ const (
 	ChannelRecv  = "channel recv"
 	ChannelSend  = "channel send"
 	ChannelUsage = "channel usage"
+)
+
+// map统计信息
+const (
+	MapCapacity = "map capacity"
 )

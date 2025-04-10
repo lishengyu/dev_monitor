@@ -1,0 +1,16 @@
+[Unit]
+Description=bsyslog service
+Wants=sysinit.service
+After=network.service dpdkenv.service
+Requires=baudit.service
+
+[Service]
+Type=simple
+ExecStart=/home/bsyslog/bsyslog
+Restart=always
+RestartSec=1
+StartLimitInterval=30
+StartLimitBurst=20
+
+[Install]
+WantedBy=multi-user.target

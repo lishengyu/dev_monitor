@@ -9,8 +9,10 @@ type Config struct {
 
 // 基础设备配置
 type BaseConfig struct {
-	DeviceIP string `yaml:"DeviceIP" json:"deviceIP"` // 设备IP地址，不配置时通过默认路由获取
-	HostName string `yaml:"HostName" json:"hostName"` // 主机名，不配置时直接从设备获取
+	DeviceIP      string `yaml:"DeviceIP" json:"deviceIP"`           // 设备IP地址，不配置时通过默认路由获取
+	HostName      string `yaml:"HostName" json:"hostName"`           // 主机名，不配置时直接从设备获取
+	RetryTimes    int    `yaml:"RetryTimes" json:"retryTimes"`       // 重试次数
+	RetryInterval int    `yaml:"RetryInterval" json:"retryInterval"` // 重试间隔时间，单位秒
 }
 
 // 日志配置

@@ -8,8 +8,11 @@ import (
 	"dev_monitor/global/logger"
 	"dev_monitor/share/formatstr"
 	"dev_monitor/share/parse/kv"
+	tf "dev_monitor/share/time"
 	"encoding/json"
 	"errors"
+	"strconv"
+	"strings"
 )
 
 type AuditLogData struct {
@@ -22,6 +25,16 @@ type AuditLogData struct {
 type AuditLogMessage struct {
 	Type int    `json:"type"`
 	Data string `json:"data"` // 原始数据保持字符串格式，后续可按需解析
+}
+
+func timeStampToInt64(timestamp string) (int64, error) {
+	// 解析时间戳字符串为时间对象
+	index := strings.Index(timestamp, ".")
+	if index != -1 {
+		timestamp = timestamp[:index]
+	}
+
+	return strconv.ParseInt(timestamp, 10, 64)
 }
 
 func NewAuditLogByLog(line string) (*AuditLogData, error) {
@@ -68,7 +81,7 @@ func getOperationObject(msgs AuditMesssagesMap) (string, error) {
 	return "", errors.New("no operation object found")
 }
 
-func getOperateionDetail(msgs AuditMesssagesMap) (string, error) {
+func getOperationDetail(msgs AuditMesssagesMap) (string, error) {
 	if len(msgs) == 0 {
 		return "", errors.New("no messages found")
 	}
@@ -112,14 +125,18 @@ func NewOperationLogByAudit(audit *AuditLogData) (*buslayer.OperationLog, error)
 		oplog.SetOperationObject(opObj)
 	}
 
+	second, err := timeStampToInt64(audit.Timestamp)
+	if err != nil {
+		return nil, err
+	} else {
+		oplog.SetStartTime(tf.TimeFormatIntConvert(second, tf.TimeFormatDefault))
+		oplog.SetEndTime(tf.TimeFormatIntConvert(second, tf.TimeFormatDefault))
+	}
 	oplog.SetOperationType(buslayer.OperationType(buslayer.Add))
-	oplog.SetStartTime(audit.Timestamp)
-	oplog.SetEndTime(audit.Timestamp)
 	oplog.SetSeverity(buslayer.SeverityLevel(buslayer.Alert))
-
 	oplog.SetResult(buslayer.Success)
 
-	opDetail, err := getOperateionDetail(msgs)
+	opDetail, err := getOperationDetail(msgs)
 	if err != nil {
 		return nil, err
 	} else {

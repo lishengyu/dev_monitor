@@ -2,12 +2,11 @@ package sender
 
 import (
 	"dev_monitor/config"
+	"dev_monitor/core/backup"
 	"dev_monitor/core/sender/connect"
 	elog "dev_monitor/global/error"
 	"dev_monitor/global/logger"
 	"encoding/json"
-	"fmt"
-	"strconv"
 	"sync/atomic"
 
 	"github.com/RackSec/srslog"
@@ -64,23 +63,6 @@ func ConsumData(sr *srslog.Writer) {
 	}
 }
 
-func ConvertToString(v interface{}) string {
-	switch x := v.(type) {
-	case string:
-		return x
-	case fmt.Stringer:
-		return x.String()
-	case error:
-		return x.Error()
-	case int:
-		return strconv.Itoa(x)
-	case bool:
-		return strconv.FormatBool(x)
-	default:
-		return fmt.Sprintf("%v", v)
-	}
-}
-
 func SysLogMarshal(a interface{}) (string, error) {
 	b, err := json.Marshal(a)
 	if err != nil {
@@ -100,10 +82,12 @@ func process(sr *srslog.Writer, data interface{}) error {
 	err = sr.Info(ctx)
 	if err != nil {
 		logger.Error(elog.StepSend, elog.FailStatus, err)
-		//todo 重试机制 + 错误处理 + 缓存机制
 		return err
 	}
 	logger.Info(elog.StepSend, elog.SuccStatus, ctx)
+	// 备份发送成功的数据到本地文件
+	backup.SuccLogWrite(ctx)
+	// todo: 记录到成功的日志文件中
 	return nil
 }
 
@@ -118,11 +102,19 @@ func StartConsumer(sr *srslog.Writer) {
 }
 
 func StartSyslogSender(cfg config.SyslogConfig) error {
+	// 初始化syslog发送channel
 	MonitorChannelInstance = NewMonitorChannel()
+	// 初始化syslog连接
 	sr, err := connect.NewSysLogTls(cfg)
 	if err != nil {
 		return err
 	}
+
+	// 初始化备份协程
+	backup.StartBackupLog()
+
+	// 初始化失败重试协程
+	go StartRetryRoutine(config.Cfg.Base.RetryInterval, config.Cfg.Base.RetryTimes)
 
 	StartConsumer(sr)
 	return nil

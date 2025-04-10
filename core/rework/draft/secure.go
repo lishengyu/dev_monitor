@@ -59,7 +59,7 @@ func MatchUserFeature(re *regexp.Regexp, text string) (time.Time, string, bool) 
 	}
 
 	// 解析时间
-	parsedTime, err := time.Parse(LogTimeFormat, matches[1])
+	parsedTime, err := time.Parse(tf.LogTimeFormat, matches[1])
 	if err != nil {
 		return time.Time{}, "", false
 	}

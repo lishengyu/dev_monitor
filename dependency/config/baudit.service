@@ -1,0 +1,16 @@
+[Unit]
+Description=baudit service
+Wants=sysinit.service
+After=network.service dpdkenv.service
+Conflicts=auditd.service
+
+[Service]
+Type=simple
+ExecStart=/home/baudit/go-audit -config /home/baudit/config/config.yaml
+Restart=always
+RestartSec=1
+StartLimitInterval=30
+StartLimitBurst=20
+
+[Install]
+WantedBy=multi-user.target

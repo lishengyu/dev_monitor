@@ -1,12 +1,15 @@
 package rework
 
 import (
+	"bufio"
+	"dev_monitor/core/dump"
 	"dev_monitor/core/rework/draft"
 	"dev_monitor/core/sender"
 	elog "dev_monitor/global/error"
 	"dev_monitor/global/logger"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/hpcloud/tail"
 )
@@ -100,6 +103,69 @@ func processAuditLog(text string) error {
 	sender.ProductData(oplog)
 
 	return nil
+}
+
+// for device online/offline
+func processHistorySystemLog(text string, history bool) error {
+	if t, ok := draft.MatchFeature(RegexpOnline, text); ok {
+		if history && dump.AfterDumpTime(t) {
+			oplog, err := draft.NewOperationOffline(t)
+			if err != nil {
+				logger.Error(elog.StepParse, elog.FailStatus, err)
+				return err
+			}
+			sender.ProductData(oplog)
+			if err := dump.DumpFile(t); err != nil {
+				logger.Error(elog.StepParse, elog.FailStatus, err)
+			}
+		} else {
+			if err := dump.DumpFile(t); err != nil {
+				logger.Error(elog.StepParse, elog.FailStatus, err)
+			}
+		}
+	} else if t, ok := draft.MatchFeature(RegexpOffline, text); ok {
+		if history && dump.AfterDumpTime(t) {
+			oplog, err := draft.NewOperationOnline(t)
+			if err != nil {
+				logger.Error(elog.StepParse, elog.FailStatus, err)
+			}
+			sender.ProductData(oplog)
+			if err := dump.DumpFile(t); err != nil {
+				logger.Error(elog.StepParse, elog.FailStatus, err)
+			}
+		} else {
+			if err := dump.DumpFile(t); err != nil {
+				logger.Error(elog.StepParse, elog.FailStatus, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func readSystemLog(flag bool) error {
+	fd, err := os.Open(SystemLogFile)
+	if err != nil {
+		logger.Warn(elog.StepLocalLog, elog.FailStatus, err)
+		return nil
+	}
+	defer fd.Close()
+
+	t := time.Now()
+	scanner := bufio.NewScanner(fd)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if err := processHistorySystemLog(line, flag); err != nil {
+			logger.Error(elog.StepParse, elog.FailStatus, err)
+			continue
+		}
+	}
+	logger.Info(elog.StepLocalLog, elog.Esplase, time.Since(t).String())
+	return nil
+}
+
+func LoadLocalSystemLog(flag bool) error {
+	return readSystemLog(flag)
 }
 
 func MonitorFile(filename string, f func(line string) error) error {
